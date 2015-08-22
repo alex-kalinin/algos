@@ -1,153 +1,144 @@
 import edu.princeton.cs.algs4.*;
-import java.util.HashSet;
+
+import java.util.ArrayList;
 //==============================================================================
 // SAP
 //==============================================================================
 public class SAP
 {
-	private final Graph   _dualG;
-	private final Digraph _reverseG;
-//	private BreadthFirstDirectedPaths _ancestorBfs;
+	private final Digraph _g;
 	//------------------------------------------------------------------------------------
 	public SAP(Digraph g)
 	{
-		_dualG = new Graph(g.V());
-
-		for (int v = 0; v < g.V(); v++) {
-			for (int w : g.adj(v)) {
-				_dualG.addEdge(v, w);
-			}
-		}
-
-		_reverseG = g.reverse();
-//		_ancestorBfs = new BreadthFirstDirectedPaths(g.reverse(), 0);
+		_g = new Digraph(g);
 	}
 	//------------------------------------------------------------------------------------
-	public int length(int v, int w)
+	private static class Ancestor
 	{
-		if (v >= _dualG.V() || w >= _dualG.V())
-			return -1;
+		public final int ancestor;
+		public final int length;
 
-		BreadthFirstPaths bfs = new BreadthFirstPaths(_dualG, v);
-		return bfs.pathTo(w) != null
-				? bfs.distTo(w)
-				: -1;
-	}
-	//------------------------------------------------------------------------------------
-	public int ancestor(int v, int w)
-	{
-		if (v >= _dualG.V() || w >= _dualG.V())
-			return -1;
-
-		if (v == w) return v;
-
-		BreadthFirstPaths bfs = new BreadthFirstPaths(_dualG, v);
-		return get_ancestor(v, w, bfs);
-	}
-	//------------------------------------------------------------------------------------
-	private HashSet<Integer> create_path(int v, BreadthFirstDirectedPaths ancestors_bfs) {
-		Iterable<Integer> root_to_v = ancestors_bfs.pathTo(v);
-		HashSet<Integer> v_root = new HashSet<>();
-
-		for (int i : root_to_v) {
-			v_root.add(i);
-		}
-		return v_root;
-	}
-	//------------------------------------------------------------------------------------
-	private int get_ancestor(int v, int w, BreadthFirstPaths bfs)
-	{
-		if (v >= _dualG.V() || w >= _dualG.V())
-			return -1;
-
-		if (v == w) return v;
-
-		int root_id = get_root(v);
-		BreadthFirstDirectedPaths ancestors_bfs = new BreadthFirstDirectedPaths(_reverseG, root_id);
-		Iterable<Integer> path = bfs.pathTo(w);
-
-		int ancestor = -1;
-		if (path != null)
+		private Ancestor(int ancestor, int length)
 		{
-			HashSet<Integer> v_root = create_path(v, ancestors_bfs);
-			HashSet<Integer> w_root = create_path(w, ancestors_bfs);
+			this.ancestor = ancestor;
+			this.length = length;
+		}
+	}
+	//------------------------------------------------------------------------------------
+	private Ancestor walk(Iterable<Integer> multi_v, Iterable<Integer> multi_w)
+	{
+		Ancestor result = new Ancestor(-1, -1);
 
-			for (int path_step : path) {
-				if (v_root.contains(path_step) && w_root.contains(path_step)) {
-					ancestor = path_step;
-					break;
+		// Build a two-direction graph to find the path v->w.
+		Graph dual = get_graph(_g);
+		BreadthFirstPaths bfs_dual_v = new BreadthFirstPaths(dual, multi_v);
+
+		for (int w : multi_w)
+		{
+			Iterable<Integer> path_v_w = bfs_dual_v.pathTo(w);
+			print_path(path_v_w);
+			if (path_v_w != null)
+			{
+				// Get the starting vertex that "won" the shortest path to w.
+				int v = path_v_w.iterator().next();
+
+				// Build paths from both vertices.
+				BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, v);
+				BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, w);
+
+				// Find the element on the path that is also on the both
+				// v_path_to_root and v_path_to_root.
+				// That's the potential shortest path ancestor.
+				// Continue for all elements on the path v->w. Pick the shortest length.
+				int length = -1;
+				int ancestor = -1;
+
+				for (int parent : path_v_w)
+				{
+					if (bfs_v.hasPathTo(parent) && bfs_w.hasPathTo(parent))
+					{
+						int cur_length = bfs_v.distTo(parent) + bfs_w.distTo(parent);
+						if (length <= -1 || cur_length < length)
+						{
+							ancestor = parent;
+							length = cur_length;
+						}
+					}
+				}
+
+				if (result.length <= -1 || result.length > length) {
+					result = new Ancestor(ancestor, length);
 				}
 			}
 		}
 
-		return ancestor;
-	}
-	private int get_root(int v)
-	{
-		return 0;
+		return result;
 	}
 	//------------------------------------------------------------------------------------
-	private class MinVertex
+	private static void print_path(Iterable<Integer> path_v_w)
 	{
-		public final int w;
-		public final Iterable<Integer> min_path;
-		public final int length;
-		//--------------------------------------------------------------------------------
-		public MinVertex(int min_length, int min_w, Iterable<Integer> min_path)
-		{
-			length = min_length;
-			w = min_w;
-			this.min_path = min_path;
+		for (int n : path_v_w) {
+			System.out.print(n + " ");
 		}
-		//--------------------------------------------------------------------------------
-		public int other()
-		{
-			int result = -1;
-			for (int i : min_path) {
-				result = i;
-			}
-			return result;
-		}
+		System.out.println();
 	}
 	//------------------------------------------------------------------------------------
-	private MinVertex get_min_path(BreadthFirstPaths bfs, Iterable<Integer> w)
+	private static ArrayList<Integer> init_array(int v) {
+		ArrayList<Integer> result = new ArrayList<>();
+		result.add(v);
+		return result;
+	}
+	//------------------------------------------------------------------------------------
+	public int length(int v, int w)
 	{
-		int min_length = -1;
-		int min_w = - 1;
-		Iterable<Integer> min_path = null;
+		if (v == w) return 0;
+		return walk(init_array(v), init_array(w)).length;
+	}
+	//------------------------------------------------------------------------------------
+	public int ancestor(int v, int w)
+	{
+		return walk(init_array(v), init_array(w)).ancestor;
+	}
+	//------------------------------------------------------------------------------------
+	private Graph get_graph(Digraph g)
+	{
+		Graph dualG = new Graph(g.V());
 
-		for (int iw : w) {
-			int len = bfs.distTo(iw);
-			if (min_length <= -1 || len < min_length) {
-				min_length = len;
-				min_w = iw;
-				min_path = bfs.pathTo(iw);
+		for (int v = 0; v < g.V(); v++)
+		{
+			for (int w : g.adj(v))
+			{
+				dualG.addEdge(v, w);
 			}
 		}
 
-		return new MinVertex(min_length, min_w, min_path);
+		return dualG;
 	}
 	//------------------------------------------------------------------------------------
 	public int length(Iterable<Integer> v, Iterable<Integer> w)
 	{
-		BreadthFirstPaths bfs = new BreadthFirstPaths(_dualG, v);
-		return get_min_path(bfs, w).length;
+		return walk(v, w).length;
 	}
 	//------------------------------------------------------------------------------------
 	public int ancestor(Iterable<Integer> v, Iterable<Integer> w)
 	{
-		BreadthFirstPaths bfs = new BreadthFirstPaths(_dualG, v);
-		MinVertex minVertex = get_min_path(bfs, w);
-		int w_  = minVertex.w;
-		int v_  = minVertex.other();
-		return get_ancestor(v_, w_, bfs);
+		return walk(v, w).ancestor;
 	}
 	//------------------------------------------------------------------------------------
-	public static void main(String[] args)
+	private static void test_length(SAP sap, int v, int w, int expected)
+	{
+		int length = sap.length(v, w);
+		if (length != expected) {
+			throw new Error("Length doesn't match; expected: " + expected + ", actual: " + length);
+		}
+	}
+	//------------------------------------------------------------------------------------
+	private static void test_loop(String[] args)
 	{
 		In in = new In(args[0]);
 		Digraph G = new Digraph(in);
 		SAP sap = new SAP(G);
+
 		while (!StdIn.isEmpty())
 		{
 			int v = StdIn.readInt();
@@ -155,6 +146,28 @@ public class SAP
 			int length = sap.length(v, w);
 			int ancestor = sap.ancestor(v, w);
 			StdOut.printf("length = %d, ancestor = %d\n", length, ancestor);
+		}
+	}
+	//------------------------------------------------------------------------------------
+	private static void unit_test()
+	{
+		In in = new In("./data/wordnet/digraph4.txt");
+		Digraph G = new Digraph(in);
+		SAP sap = new SAP(G);
+
+		test_length(sap, 2, 0, 6);
+//		test_length(sap, 7, 8, 1);
+//		test_length(sap, 7, 0, 4);
+//		test_length(sap, 0, 9, 3);
+	}
+	//------------------------------------------------------------------------------------
+	public static void main(String[] args)
+	{
+		if (args[0].equals("unit-test")) {
+			unit_test();
+		}
+		else {
+			test_loop(args);
 		}
 	}
 }
