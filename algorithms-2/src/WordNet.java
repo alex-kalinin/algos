@@ -1,6 +1,6 @@
 import edu.princeton.cs.algs4.*;
 import java.util.*;
-//import java.util.stream.Collectors;
+
 //----------------------------------------------------------------------------------------
 @SuppressWarnings("Convert2streamapi")
 public class WordNet
@@ -9,17 +9,16 @@ public class WordNet
     {
         private final String _nouns;
         private int _id;
-
+        //--------------------------------------------------------------------------------
         public Synset(int id, String nouns)
         {
             _id = id;
             _nouns = nouns;
         }
-
+        //--------------------------------------------------------------------------------
         public void add_nouns_to_map(HashMap<String, List<Synset>> nouns_map)
         {
-            String[] nouns = _nouns.split(" ");
-            for (String n : nouns) {
+            for (String n : nouns()) {
                 if (!nouns_map.containsKey(n)) {
                     nouns_map.put(n, new ArrayList<>());
                 }
@@ -27,9 +26,15 @@ public class WordNet
                 prev.add(this);
             }
         }
+        //--------------------------------------------------------------------------------
         public String synset_string()
         {
-            return null;
+            return _nouns;
+        }
+        //--------------------------------------------------------------------------------
+        public String[] nouns()
+        {
+            return _nouns.split(" ");
         }
     }
     //------------------------------------------------------------------------------------
@@ -40,31 +45,36 @@ public class WordNet
 	public WordNet(String synsets, String hypernyms)
 	{
         In in_synsets = new In(synsets);
-	    _dag = new Digraph(in_synsets.readAllLines().length);
+        String[] lines = in_synsets.readAllLines();
+        _dag = new Digraph(lines.length);
         in_synsets.close();
-        in_synsets = new In(synsets);
 
-        while (in_synsets.hasNextLine()) {
+        for (String line : lines)
+        {
             // 232,Aegates_Isles Aegadean_Isles,islands west of Sicily (now known as the Egadi Islands) where ...
-            String line = in_synsets.readLine();
             String[] parts = line.split(",");
             int id = Integer.parseInt(parts[0]);
             Synset synset = new Synset(id, parts[1]);
             _synsets.put(id, synset);
             synset.add_nouns_to_map(_nouns_map);
         }
-        in_synsets.close();
+
         parse_hypernyms(_dag, hypernyms);
+
+        print("Vertices: " + _dag.V() + "; edges: " + _dag.E());
 	}
     //------------------------------------------------------------------------------------
     private static void parse_hypernyms(Digraph dag, String hypernyms)
     {
         In in = new In(hypernyms);
-        while (in.hasNextLine()) {
+        while (in.hasNextLine())
+        {
             String line = in.readLine();
             String[] parts = line.split(",");
             int synset_id = Integer.parseInt(parts[0]);
-            for (int i = 1; i < parts.length; i++) {
+
+            for (int i = 1; i < parts.length; i++)
+            {
                 int hyper_id = Integer.parseInt(parts[i]);
                 dag.addEdge(synset_id, hyper_id);
             }
@@ -97,10 +107,6 @@ public class WordNet
             result.add(s._id);
         }
         return result;
-//
-//        return synsets.stream()
-//                .map(s -> s._id)
-//                .collect(Collectors.toCollection(ArrayList::new));
     }
     //------------------------------------------------------------------------------------
     public String sap(String nounA, String nounB)
@@ -116,14 +122,16 @@ public class WordNet
         Stopwatch sw = new Stopwatch();
         WordNet w = new WordNet(to_path("synsets.txt"), to_path("hypernyms.txt"));
         print("Done in " + sw.elapsedTime() + " s");
-
-        for (String n : w.nouns()) {
-            print(n);
+        print(w.sap("tow_car", "jean"));
+    }
+    //------------------------------------------------------------------------------------
+    private static void print_path(Iterable<Integer> path)
+    {
+        for (int v : path)
+        {
+            System.out.print(" " + v);
         }
-        boolean noun = w.isNoun("");
-        print("" + noun);
-        String sap = w.sap("a", "b");
-        print(sap);
+        System.out.println();
     }
     //------------------------------------------------------------------------------------
     private static String to_path(String name)
@@ -131,7 +139,8 @@ public class WordNet
         return "data/wordnet/" + name;
     }
     //------------------------------------------------------------------------------------
-    private static void print(String msg) {
+    private static void print(String msg)
+    {
         System.out.println(msg);
     }
 }

@@ -27,61 +27,36 @@ public class SAP
 	//------------------------------------------------------------------------------------
 	private Ancestor walk(Iterable<Integer> multi_v, Iterable<Integer> multi_w)
 	{
-		Ancestor result = new Ancestor(-1, -1);
+		BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, multi_v);
+		BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, multi_w);
 
-		// Build a two-direction graph to find the path v->w.
-		Graph dual = get_graph(_g);
-		BreadthFirstPaths bfs_dual_v = new BreadthFirstPaths(dual, multi_v);
+		int length = -1;
+		int ancestor = -1;
 
-		for (int w : multi_w)
+		for (int node = 0; node < _g.V(); node++)
 		{
-			Iterable<Integer> path_v_w = bfs_dual_v.pathTo(w);
-			print_path(path_v_w);
-			if (path_v_w != null)
+			if (bfs_v.hasPathTo(node) && bfs_w.hasPathTo(node))
 			{
-				// Get the starting vertex that "won" the shortest path to w.
-				int v = path_v_w.iterator().next();
+				int cur_length = bfs_v.distTo(node) + bfs_w.distTo(node);
 
-				// Build paths from both vertices.
-				BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, v);
-				BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, w);
-
-				// Find the element on the path that is also on the both
-				// v_path_to_root and v_path_to_root.
-				// That's the potential shortest path ancestor.
-				// Continue for all elements on the path v->w. Pick the shortest length.
-				int length = -1;
-				int ancestor = -1;
-
-				for (int parent : path_v_w)
+				if (length <= -1 || cur_length < length)
 				{
-					if (bfs_v.hasPathTo(parent) && bfs_w.hasPathTo(parent))
-					{
-						int cur_length = bfs_v.distTo(parent) + bfs_w.distTo(parent);
-						if (length <= -1 || cur_length < length)
-						{
-							ancestor = parent;
-							length = cur_length;
-						}
-					}
-				}
-
-				if (result.length <= -1 || result.length > length) {
-					result = new Ancestor(ancestor, length);
+					ancestor = node;
+					length = cur_length;
 				}
 			}
 		}
 
-		return result;
+		return new Ancestor(ancestor, length);
 	}
 	//------------------------------------------------------------------------------------
-	private static void print_path(Iterable<Integer> path_v_w)
-	{
-		for (int n : path_v_w) {
-			System.out.print(n + " ");
-		}
-		System.out.println();
-	}
+//	private static void print_path(Iterable<Integer> path_v_w)
+//	{
+//		for (int n : path_v_w) {
+//			System.out.print(n + " ");
+//		}
+//		System.out.println();
+//	}
 	//------------------------------------------------------------------------------------
 	private static ArrayList<Integer> init_array(int v) {
 		ArrayList<Integer> result = new ArrayList<>();
@@ -98,21 +73,6 @@ public class SAP
 	public int ancestor(int v, int w)
 	{
 		return walk(init_array(v), init_array(w)).ancestor;
-	}
-	//------------------------------------------------------------------------------------
-	private Graph get_graph(Digraph g)
-	{
-		Graph dualG = new Graph(g.V());
-
-		for (int v = 0; v < g.V(); v++)
-		{
-			for (int w : g.adj(v))
-			{
-				dualG.addEdge(v, w);
-			}
-		}
-
-		return dualG;
 	}
 	//------------------------------------------------------------------------------------
 	public int length(Iterable<Integer> v, Iterable<Integer> w)
@@ -161,10 +121,28 @@ public class SAP
 //		test_length(sap, 0, 9, 3);
 	}
 	//------------------------------------------------------------------------------------
+	private static void test_on_graph_A()
+	{
+		Digraph d = new Digraph(9);
+		d.addEdge(0, 1);
+		d.addEdge(1, 2);
+		d.addEdge(2, 5);
+		d.addEdge(1, 3);
+		d.addEdge(3, 4);
+		d.addEdge(4, 5);
+		d.addEdge(5, 6);
+		d.addEdge(7, 6);
+		d.addEdge(6, 8);
+
+		SAP sap = new SAP(d);
+		test_length(sap, 0, 7, 5);
+	}
+	//------------------------------------------------------------------------------------
 	public static void main(String[] args)
 	{
 		if (args[0].equals("unit-test")) {
 			unit_test();
+			test_on_graph_A();
 		}
 		else {
 			test_loop(args);
