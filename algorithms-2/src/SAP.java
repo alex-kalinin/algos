@@ -1,3 +1,4 @@
+
 import edu.princeton.cs.algs4.*;
 
 import java.util.ArrayList;
@@ -27,15 +28,18 @@ public class SAP
 	//------------------------------------------------------------------------------------
 	private Ancestor walk(Iterable<Integer> multi_v, Iterable<Integer> multi_w)
 	{
-		BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, multi_v);
-		BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, multi_w);
+		WordNetFastBFS bfs_v = new WordNetFastBFS(_g, multi_v);
+		WordNetFastBFS bfs_w = new WordNetFastBFS(_g, multi_w);
+//		BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, multi_v);
+//		BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, multi_w);
 
 		int length = -1;
 		int ancestor = -1;
 
-		for (int node = 0; node < _g.V(); node++)
+//		for (int node = 0; node < _g.V(); node++)
+		for (int node : bfs_v.reachable())
 		{
-			if (bfs_v.hasPathTo(node) && bfs_w.hasPathTo(node))
+			if (bfs_w.hasPathTo(node))
 			{
 				int cur_length = bfs_v.distTo(node) + bfs_w.distTo(node);
 
@@ -49,14 +53,6 @@ public class SAP
 
 		return new Ancestor(ancestor, length);
 	}
-	//------------------------------------------------------------------------------------
-//	private static void print_path(Iterable<Integer> path_v_w)
-//	{
-//		for (int n : path_v_w) {
-//			System.out.print(n + " ");
-//		}
-//		System.out.println();
-//	}
 	//------------------------------------------------------------------------------------
 	private static ArrayList<Integer> init_array(int v) {
 		ArrayList<Integer> result = new ArrayList<>();
@@ -114,11 +110,7 @@ public class SAP
 		In in = new In("./data/wordnet/digraph4.txt");
 		Digraph G = new Digraph(in);
 		SAP sap = new SAP(G);
-
 		test_length(sap, 2, 0, 6);
-//		test_length(sap, 7, 8, 1);
-//		test_length(sap, 7, 0, 4);
-//		test_length(sap, 0, 9, 3);
 	}
 	//------------------------------------------------------------------------------------
 	private static void test_on_graph_A()
