@@ -1,5 +1,7 @@
 package seam;
 import edu.princeton.cs.algs4.Picture;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import java.awt.*;
 //========================================================================================
 // SeamCarver
@@ -41,21 +43,29 @@ public class SeamCarver
 		return _picture;
 	}
 	//------------------------------------------------------------------------------------
-	private Picture picture_from_matrix(Color[][] matrix)
+	private Picture picture_from_matrix(Color[][] matrix, boolean transposed)
 	{
+		Picture result = new Picture(width(), height());
+		for (int x = 0; x < _width; x++)
+			for (int y = 0; y < _height; y++) {
+				int col = transposed ? y : x;
+				int row = transposed ? x : y;
+				result.set(col, row, matrix[x][y]);
+			}
+		return result;
 	}
 	//------------------------------------------------------------------------------------
 	public int width()                            // width of current picture
 	{
-
+		return _transposed ? _height : _width;
 	}
 	//------------------------------------------------------------------------------------
 	public int height()                           // height of current picture
 	{
-
+		return _transposed ? _width : _height;
 	}
 	//------------------------------------------------------------------------------------
-	public  double energy(int x, int y)               // energy of pixel at column x and row y
+	public double energy(int x, int y)               // energy of pixel at column x and row y
 	{
 		return is_border(x, y) ? 1000 : calculate_energy(x ,y);
 	}
@@ -89,12 +99,12 @@ public class SeamCarver
 	//------------------------------------------------------------------------------------
 	public int[] findHorizontalSeam()               // sequence of indices for horizontal seam
 	{
-
+		throw new NotImplementedException();
 	}
 	//------------------------------------------------------------------------------------
 	public int[] findVerticalSeam()                 // sequence of indices for vertical seam
 	{
-
+		throw new NotImplementedException();
 	}
 	//------------------------------------------------------------------------------------
 	public void removeHorizontalSeam(int[] seam)   // remove horizontal seam from current picture
@@ -102,36 +112,78 @@ public class SeamCarver
 		remove_seam(seam, false);
 	}
 	//------------------------------------------------------------------------------------
+	// Converts to the horizontal seam if necessary and removes it.
+	// Removing a horizontal seam is much faster than a vertical seam.
+	//------------------------------------------------------------------------------------
 	private void remove_seam(int[] seam, boolean is_vertical)
 	{
-		if (is_vertical && _transposed) {
+		if (is_vertical && !_transposed) {
 			_matrix = transpose(_matrix);
-			_transposed = false;
 		}
-		else if (!is_vertical && !_transposed)
+		else if (!is_vertical && _transposed)
 		{
 			_matrix = transpose(_matrix);
-			_transposed = true;
 		}
 
-		for (int y = 0; y < seam.length; y++)
+		for (int x = 0; x < seam.length; x++)
 		{
-			int x = seam[y];
+			int y = seam[x];
 			Color[] line = _matrix[x];
-			System.arraycopy(line, y + 1, line, y, _width - y - 1);
-
+			System.arraycopy(line, y + 1, line, y, _height - y - 1);
 		}
 
-		if (is_vertical)
-			_width -= 1;
-		else
-			_height -= 1;
-
+		_height -= 1;
 		_changed = true;
+	}
+	//------------------------------------------------------------------------------------
+	private Color[][] transpose(Color[][] matrix)
+	{
+		Color[][] result = new Color[_height][_width];
+
+		for (int x = 0; x < _width; x++)
+			for (int y = 0; y < _height; y++)
+				result[y][x] = matrix[x][y];
+		int temp = _height;
+
+		//noinspection SuspiciousNameCombination
+		_height = _width;
+		_width = temp;
+
+		_transposed = !_transposed;
+
+		return result;
 	}
 	//------------------------------------------------------------------------------------
 	public void removeVerticalSeam(int[] seam)     // remove vertical seam from current picture
 	{
 		remove_seam(seam, true);
+	}
+
+	public static void main(String[] args)
+	{
+		String[] test_args = new String[]{expand_vars("~/Downloads/test_image.jpg"), "100", "0"};
+//		ResizeDemo.main();
+//		PrintEnergy.main(test_args);
+//		ShowEnergy.main(test_args);
+		Picture picture = new Picture(test_args[0]);
+		SeamCarver seam_carver = new SeamCarver(picture);
+
+		int[] seam = new int[seam_carver.height()];
+		for (int i = 0; i < seam.length; i++)
+			seam[i] = 10;
+
+		// Remove 50 seams
+		for (int i = 0; i < 50; i++)
+		{
+			seam_carver.removeVerticalSeam(seam);
+		}
+
+		Picture result_picture = seam_carver.picture();
+		result_picture.show();
+	}
+	//------------------------------------------------------------------------------------
+	private static String expand_vars(String path)
+	{
+		return path.replaceFirst("^~",System.getProperty("user.home"));
 	}
 }
