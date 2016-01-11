@@ -27,14 +27,8 @@ h = h';  % convert to a proper vector
 
 j_part = -y .* log(h) - (1 - y) .* log(1 .- h);
 J = sum(j_part) / m;
-% grad = (h - y)' * X' / m;
 
-h_y = (h - y);
-h_y2 = kron(ones(1, length(theta)), h_y);
-
-grad = h_y2 * X' / m;
-
-
+grad = X' * (h - y) / m;
 % =============================================================
 
 end
