@@ -20,7 +20,7 @@ public class WordNet
         {
             for (String n : nouns()) {
                 if (!nouns_map.containsKey(n)) {
-                    nouns_map.put(n, new ArrayList<>());
+                    nouns_map.put(n, new ArrayList<Synset>());
                 }
                 List<Synset> prev = nouns_map.get(n);
                 prev.add(this);
@@ -50,7 +50,7 @@ public class WordNet
 
         for (String line : lines)
         {
-            // 232,Aegates_Isles Aegadean_Isles,islands west of Sicily (now known as the Egadi Islands) where ...
+            // 232, Aegates_Isles Aegadean_Isles,islands west of Sicily (now known as the Egadi Islands) where ...
             String[] parts = line.split(",");
             int id = Integer.parseInt(parts[0]);
             Synset synset = new Synset(id, parts[1]);
@@ -125,17 +125,17 @@ public class WordNet
         in.close();
     }
     //------------------------------------------------------------------------------------
-    public Iterable<String> nouns()
-    {
-        return _nouns_map.keySet();
-    }
-    //------------------------------------------------------------------------------------
-    public boolean isNoun(String word)
-    {
-        if (word == null) throw new NullPointerException();
-
-        return _nouns_map.containsKey(word);
-    }
+//    public Iterable<String> nouns()
+//    {
+//        return _nouns_map.keySet();
+//    }
+//    //------------------------------------------------------------------------------------
+//    public boolean isNoun(String word)
+//    {
+//        if (word == null) throw new NullPointerException();
+//
+//        return _nouns_map.containsKey(word);
+//    }
     //------------------------------------------------------------------------------------
     public int distance(String nounA, String nounB)
     {
@@ -172,10 +172,6 @@ public class WordNet
     //------------------------------------------------------------------------------------
     public static void main(String[] args)
 	{
-//        Stopwatch sw = new Stopwatch();
-//        WordNet w = new WordNet(to_path("synsets3.txt"), to_path("hypernyms3InvalidCycle.txt"));
-//        print("Done in " + sw.elapsedTime() + " s");
-//        print(w.sap("tow_car", "jean"));
         test_performance(args);
     }
     //------------------------------------------------------------------------------------
@@ -197,19 +193,19 @@ public class WordNet
         print("Done in " + sw.elapsedTime() + " s");
     }
     //------------------------------------------------------------------------------------
-    private static void print_path(Iterable<Integer> path)
-    {
-        for (int v : path)
-        {
-            System.out.print(" " + v);
-        }
-        System.out.println();
-    }
-    //------------------------------------------------------------------------------------
-    private static String to_path(String name)
-    {
-        return "data/wordnet/" + name;
-    }
+//    private static void print_path(Iterable<Integer> path)
+//    {
+//        for (int v : path)
+//        {
+//            System.out.print(" " + v);
+//        }
+//        System.out.println();
+//    }
+//    //------------------------------------------------------------------------------------
+//    private static String to_path(String name)
+//    {
+//        return "data/wordnet/" + name;
+//    }
     //------------------------------------------------------------------------------------
     private static void print(String msg)
     {

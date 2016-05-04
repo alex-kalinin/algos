@@ -1,6 +1,5 @@
 package wordnet;
 import edu.princeton.cs.algs4.*;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,7 +10,6 @@ import java.util.HashSet;
 public class WordNetFastBFS
 {
 	private HashSet<Integer> _marked = new HashSet<>();
-//	private HashMap<Integer, Integer> _edgeTo = new HashMap<>();
 	private HashMap<Integer, Integer> _distTo = new HashMap<>();
 	private ArrayList<Integer> _reachable = new ArrayList<>();
 
@@ -25,10 +23,8 @@ public class WordNetFastBFS
         Queue<Integer> q = new Queue<>();
         for (int s : sources)
         {
-//            _marked[s] = true;
 	        _marked.add(s);
 	        _reachable.add(s);
-//            distTo[s] = 0;
 	        _distTo.put(s, 0);
             q.enqueue(s);
         }
@@ -36,13 +32,8 @@ public class WordNetFastBFS
             int v = q.dequeue();
             for (int w : G.adj(v)) {
 	            if (!_marked.contains(w))
-//                if (!_marked[w])
                 {
-//                    edgeTo[w] = v;
-//	                _edgeTo.put(w, v);
-//                    distTo[w] = distTo[v] + 1;
 	                _distTo.put(w, _distTo.get(v) + 1);
-//                    _marked[w] = true;
 	                _marked.add(w);
 	                _reachable.add(w);
                     q.enqueue(w);
@@ -50,14 +41,12 @@ public class WordNetFastBFS
             }
         }
     }
-
     /**
      * Is there a directed path from the source <tt>s</tt> (or sources) to vertex <tt>v</tt>?
      * @param v the vertex
      * @return <tt>true</tt> if there is a directed path, <tt>false</tt> otherwise
      */
     public boolean hasPathTo(int v) {
-//        return _marked[v];
 	    return _marked.contains(v);
     }
 
@@ -65,8 +54,6 @@ public class WordNetFastBFS
 	{
 		return _reachable;
 	}
-
-
     /**
      * Returns the number of edges in a shortest path from the source <tt>s</tt>
      * (or sources) to vertex <tt>v</tt>?
@@ -74,17 +61,14 @@ public class WordNetFastBFS
      * @return the number of edges in a shortest path
      */
     public int distTo(int v) {
-//        return distTo[v];
 	    return _distTo.get(v);
     }
-
     /**
      * Unit tests the <tt>BreadthFirstDirectedPaths</tt> data type.
      */
     public static void main(String[] args) {
         In in = new In(args[0]);
         Digraph G = new Digraph(in);
-        // StdOut.println(G);
 
         int s = Integer.parseInt(args[1]);
         BreadthFirstDirectedPaths bfs = new BreadthFirstDirectedPaths(G, s);

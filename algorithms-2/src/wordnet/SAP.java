@@ -30,13 +30,10 @@ public class SAP
 	{
 		WordNetFastBFS bfs_v = new WordNetFastBFS(_g, multi_v);
 		WordNetFastBFS bfs_w = new WordNetFastBFS(_g, multi_w);
-//		BreadthFirstDirectedPaths bfs_v = new BreadthFirstDirectedPaths(_g, multi_v);
-//		BreadthFirstDirectedPaths bfs_w = new BreadthFirstDirectedPaths(_g, multi_w);
 
 		int length = -1;
 		int ancestor = -1;
 
-//		for (int node = 0; node < _g.V(); node++)
 		for (int node : bfs_v.reachable())
 		{
 			if (bfs_w.hasPathTo(node))
