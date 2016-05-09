@@ -1,35 +1,28 @@
 import edu.princeton.cs.algs4.Picture;
+import edu.princeton.cs.algs4.Stack;
 import java.awt.*;
-import java.util.Random;
+import java.util.ArrayList;
 //==============================================================================
 // SeamCarver
 //==============================================================================
 public class SeamCarver {
-    private Picture _picture;
-    private Color[][] _pixels;
-    private double[][] _energy;
+    private int[][] _pixels;
     private int _width;
     private int _height;
     private boolean _transposed;
     //--------------------------------------------------------------------------
     public SeamCarver(Picture picture)                // create a seam carver object based on the given picture
     {
-        _picture = picture;
+        _transposed = false;
+
+        _pixels = new int[picture.height()][picture.width()];
 
         _width = picture.width();
         _height = picture.height();
-        _transposed = false;
-
-        _pixels = new Color[picture.height()][picture.width()];
-        _energy = new double[picture.height()][picture.width()];
 
         for (int y = 0; y < picture.height(); y++)
             for (int x = 0; x < picture.width(); x++)
-                _pixels[y][x] = picture.get(x, y);
-
-        for (int y = 0; y < picture.height(); y++)
-            for (int x = 0; x < picture.width(); x++)
-                _energy[y][x] = energy(x, y);
+                _pixels[y][x] = picture.get(x, y).getRGB();
     }
     //--------------------------------------------------------------------------
     public Picture picture()                          // current picture
@@ -38,29 +31,36 @@ public class SeamCarver {
             transpose();
         }
 
-        return _picture != null ? _picture : (_picture = create_picture());
+        return create_picture();
     }
     //--------------------------------------------------------------------------
     private Picture create_picture() {
         Picture result = new Picture(_width, _height);
         for (int y = 0; y < _height; y++)
             for (int x = 0; x < _width; x++)
-                result.set(x, y, _pixels[y][x]);
+                result.set(x, y, new Color(_pixels[y][x]));
         return result;
     }
     //--------------------------------------------------------------------------
     public     int width()                            // width of current picture
     {
-        return _width;
+        return _transposed ? _height : _width;
     }
     //--------------------------------------------------------------------------
     public     int height()                           // height of current picture
     {
-        return _height;
+        return _transposed ? _width : _height;
     }
     //--------------------------------------------------------------------------
     public  double energy(int x, int y)               // energy of pixel at column x and row y
     {
+        //noinspection SuspiciousNameCombination
+        return _transposed
+                ? energy_internal(y, x)
+                : energy_internal(x, y);
+    }
+    //--------------------------------------------------------------------------
+    private double energy_internal(int x, int y) {
         if (x < 0 || x > _width - 1) throw new IndexOutOfBoundsException("x: " + x + ", width: " + _width);
         if (y < 0 || y > _height - 1) throw new IndexOutOfBoundsException("y: " + y + ", height: " + _height);
 
@@ -78,7 +78,9 @@ public class SeamCarver {
         return result;
     }
     //--------------------------------------------------------------------------
-    private double grad_squared(Color left, Color right) {
+    private double grad_squared(int left_int, int right_int) {
+        Color left = new Color(left_int);
+        Color right = new Color(right_int);
         int dR = right.getRed()   - left.getRed();
         int dG = right.getGreen() - left.getGreen();
         int dB = right.getBlue()  - left.getBlue();
@@ -98,28 +100,6 @@ public class SeamCarver {
         do_remove_vertical_seam(seam);
     }
     //--------------------------------------------------------------------------
-    private void transpose() {
-        Color[][] pixel_result = new Color[_width][_height];
-        double[][] energy_result = new double[_width][_height];
-
-        for (int y = 0; y < _height; y++)
-            for (int x = 0; x < _width; x++) {
-                pixel_result[x][y] = _pixels[y][x];
-                energy_result[x][y] = _energy[y][x];
-            }
-
-        int temp = _width;
-        //noinspection SuspiciousNameCombination
-        _width = _height;
-        _height = temp;
-
-        _pixels = pixel_result;
-        _energy = energy_result;
-
-        _picture = null;
-        _transposed = !_transposed;
-    }
-    //--------------------------------------------------------------------------
     public int[] findVerticalSeam()                 // sequence of indices for vertical seam
     {
         if (_transposed) transpose();
@@ -132,11 +112,26 @@ public class SeamCarver {
         do_remove_vertical_seam(seam);
     }
     //--------------------------------------------------------------------------
+    private void transpose() {
+        int[][] pixel_result = new int[_width][_height];
+
+        for (int y = 0; y < _height; y++)
+            for (int x = 0; x < _width; x++) {
+                pixel_result[x][y] = _pixels[y][x];
+            }
+
+        int temp = _width;
+        //noinspection SuspiciousNameCombination
+        _width = _height;
+        _height = temp;
+
+        _pixels = pixel_result;
+        _transposed = !_transposed;
+    }
+    //--------------------------------------------------------------------------
     private int[] do_find_vertical_seam() {
-        int x = new Random().nextInt(_width);
-        int[] result = new int[_height];
-        for (int y = 0; y < _height; y++) result[y] = x;
-        return result;
+        MatrixSP sp = new MatrixSP(_width, _height);
+        return sp.seam();
     }
     //--------------------------------------------------------------------------
     private void do_remove_vertical_seam(int[] seam) {
@@ -149,63 +144,162 @@ public class SeamCarver {
             int seam_x = seam[y];
 
             if (seam_x < 0 || seam_x >= _width)
-                throw new IllegalArgumentException("x differ more than 1 for y = " + y);
+                throw new IllegalArgumentException("x out of bounds");
 
             // "x" diff is more than one; not a valid seam
             if (y > 0 && Math.abs(prev_x - seam_x) > 1)
                 throw new IllegalArgumentException("x differ more than 1 for y = " + y);
 
-            System.arraycopy(_pixels[y], seam_x + 1, _pixels[y], seam_x, _width - seam_x - 1);
+            if (seam_x < _width - 1) {
+                System.arraycopy(_pixels[y], seam_x + 1, _pixels[y], seam_x, _width - seam_x - 1);
+            }
 
             prev_x = seam_x;
         }
 
-        // Invalidate the picture cache
-        _picture = null;
         _width -= 1;
     }
+    //==========================================================================
+    // MatrixSP
+    //==========================================================================
+    private class MatrixSP {
+        private final int _width;
+        private final int _height;
+        private float[] _distTo;
+        private int[] _edgeTo;
+        private int V;
+        //----------------------------------------------------------------------
+        public MatrixSP(int width, int height) {
+            V = width * height + 2;
+            _width = width;
+            _height = height;
 
-//    private static class Coord
-//    {
-//        public Coord(int x, int y) {
-//        }
-//    }
-    //==========================================================================
-    //
-    //==========================================================================
-//    private static class MatrixSP {
-//
-//        private DirectedEdge[] _edgeTo;
-//        private double[] _distTo;
-//
-//        public MatrixSP(double[][] energy, int width, int height) {
-//            // Topological order is implied by coordinates:
-//            // First "x", then "y"
-//            for (int y = 0; y < height; y++) {
-//                for (int x = 0; x < width; x++) {
-//                    for (Coord v : adj(x, y, width, height)) {
-//                        relax(v, energy);
-//                    }
-//                }
-//            }
-//        }
-//
-//        private void relax(Coord v) {
-//
-//        }
-//
-//        private Coord[] adj(int x, int y, int width, int height) {
-//            ArrayList<Coord> result = new ArrayList<>();
-//            if (y < height - 1) {
-//                for (int dx = -1; dx <= 1; dx ++) {
-//                    int vx = x + dx;
-//                    if (vx >= 0 && vx < width) {
-//                        Coord v = new Coord(vx, y + 1);
-//                        result.add(v);
-//                    }
-//                }
-//            }
-//            return (Coord[]) result.toArray();
-//        }
-//    }
+            _edgeTo = new int[V];
+            _distTo = new float[V];
+
+            for (int v  = 0; v < V; v++) {
+                _edgeTo[v] = -1;
+                _distTo[v] = Float.POSITIVE_INFINITY;
+            }
+
+            _distTo[0] = 0;
+
+            // Topological order is implied by coordinates:
+            // First "x", then "y"
+            for (int v = 0; v < V; v++) {
+                for (int w : adj_w(v)) {
+                    assert w > 0;
+                    relax(v, w);
+                }
+            }
+        }
+        //----------------------------------------------------------------------
+        private void relax(int v, int w) {
+            float weight = 3000;
+            if (w < V - 1) {
+                int x = vertex_to_x(w);
+                int y = vertex_to_y(w);
+                weight = (float) energy_internal(x, y);
+            }
+
+            assert v < w;
+
+            if (_distTo[w] > _distTo[v] + weight) {
+                // System.out.println("Update edge");
+                _distTo[w] = _distTo[v] + weight;
+                _edgeTo[w] = v;
+            }
+        }
+        //----------------------------------------------------------------------
+        // Returns indexes w of adjacent edges
+        private int[] adj_w(int v) {
+
+            int[] result = new int[0];
+
+            if (v == 0) {
+                // All top layer is adjacent
+                result = new int[_width];
+                int y = 0;
+                for (int x = 0; x < _width; x++)
+                    result[x] = xy_to_vertex(x, y);
+            }
+            else if (v < V - 1) {
+                int x = vertex_to_x(v);
+                int y = vertex_to_y(v);
+
+                ArrayList<Integer> x_list = new ArrayList<>();
+
+                if (y < _height - 1) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int wx = x + dx;
+                        if (wx >= 0 && wx < _width) {
+                            x_list.add(wx);
+                        }
+                    }
+                    result = new int[x_list.size()];
+                    for (int i = 0; i < result.length; i++)
+                        result[i] = xy_to_vertex(x_list.get(i), y + 1);
+                }
+                else {
+                    // The last row, points to the sink
+                    result = new int[1];
+                    result[0] = V - 1;
+                }
+            }
+            // else it's a sink, the last edge, nothing is out there
+            // so we'll return an empty array.
+            for (int aResult : result) {
+                assert v < aResult;
+            }
+
+            return result;
+        }
+        //----------------------------------------------------------------------
+        private int vertex_to_y(int v) {
+            if (v <= 0 || v >= V - 1) throw new IllegalArgumentException();
+            return (v - 1) / _width;
+        }
+        //----------------------------------------------------------------------
+        private int vertex_to_x(int v) {
+            if (v <= 0 || v >= V - 1) throw new IllegalArgumentException("v: " + v);
+            int y = vertex_to_y(v);
+            return v - (y * _width + 1);
+        }
+        //----------------------------------------------------------------------
+        private int xy_to_vertex(int x, int y) {
+            int result = y * _width + x + 1;
+            assert result > 0;
+            assert result < V - 1;
+            return result;
+        }
+        //----------------------------------------------------------------------
+        public int[] seam() {
+            int[] result = new int[_height];
+            // Skip the first and last edge
+            Stack<Integer> path = pathTo(V - 1);
+
+            assert path.size() == _height + 1;
+
+            for (Integer e : path) {
+                int v = e;
+
+                if (v > 0 && v < V - 1) {
+                    // Interior nodes on the picture
+                    int y = vertex_to_y(v);
+                    int x = vertex_to_x(v);
+                    result[y] = x;
+                }
+            }
+
+            return result;
+        }
+        //----------------------------------------------------------------------
+        private Stack<Integer> pathTo(int v) {
+            Stack<Integer> path = new Stack<>();
+            for (int e = _edgeTo[v]; e != -1; e = _edgeTo[e]) {
+                path.push(e);
+            }
+            return path;
+        }
+    }
 }
