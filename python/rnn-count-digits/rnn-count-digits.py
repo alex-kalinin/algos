@@ -1,4 +1,3 @@
-import numpy as np
 from random import shuffle
 import tensorflow as tf
 
